@@ -1,5 +1,6 @@
 import { utils, write } from 'xlsx';
 import type { ColumnRule } from '../types';
+import { applyTransformation } from './transformations';
 
 export const generateExcel = (
   data: any[],
@@ -17,7 +18,7 @@ export const generateExcel = (
   const transformedData = data.map(row => {
     const newRow: Record<string, any> = {};
     activeRules.forEach(rule => {
-      newRow[rule.new_header] = row[rule.original_header];
+      newRow[rule.new_header] = applyTransformation(row, rule, rules);
     });
     return newRow;
   });

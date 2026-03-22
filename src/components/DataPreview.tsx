@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { ColumnRule } from '../types';
+import { applyTransformation } from '../utils/transformations';
 
 interface DataPreviewProps {
   data: any[];
@@ -8,6 +9,7 @@ interface DataPreviewProps {
 
 export const DataPreview: React.FC<DataPreviewProps> = React.memo(({ data, rules }) => {
   const [activeTab, setActiveTab] = useState<'excel' | 'dbf'>('excel');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   if (!data || data.length === 0) return null;
 
@@ -19,73 +21,85 @@ export const DataPreview: React.FC<DataPreviewProps> = React.memo(({ data, rules
     rules.filter(r => !r.is_visible),
   [rules]);
   
-  const previewData = useMemo(() => data.slice(0, 50), [data]); // Reduced to 50 for even better performance
+  const previewData = useMemo(() => data.slice(0, 50), [data]);
+
+  // Gestione rotella mouse: trasforma scroll verticale in orizzontale
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+
+    el.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleNativeWheel);
+  }, []);
 
   return (
-    <div className="border rounded-2xl bg-card flex flex-col h-full shadow-sm overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
-      <div className="flex border-b bg-muted/20 p-4 gap-3 shrink-0">
+    <div className="border rounded-xl bg-card flex flex-col h-full shadow-xs overflow-hidden animate-in fade-in slide-in-from-right-2 duration-300">
+      <div className="flex border-b bg-muted/10 p-2 gap-2 shrink-0">
         <button
-          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'excel' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-muted'}`}
+          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${activeTab === 'excel' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
           onClick={() => setActiveTab('excel')}
         >
-          Anteprima Excel
+          Excel
         </button>
         <button
-          className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'dbf' ? 'bg-background border text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
+          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${activeTab === 'dbf' ? 'bg-background border text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}
           onClick={() => setActiveTab('dbf')}
         >
-          Colonne Scartate (DBF)
+          Scartate
         </button>
       </div>
       
-      <div className="p-0 overflow-auto flex-1 custom-scrollbar">
-        <table className="w-full text-sm text-left border-collapse">
-          <thead className="bg-muted/50 sticky top-0 z-10 shadow-sm border-b">
+      <div 
+        ref={scrollContainerRef}
+        className="p-0 overflow-auto flex-1 custom-scrollbar"
+      >
+        <table className="w-full text-xs text-left border-collapse">
+          <thead className="bg-muted/30 sticky top-0 z-10 shadow-xs border-b">
             <tr>
               {activeTab === 'excel' 
                 ? excelRules.map(rule => (
-                    <th key={rule.original_header} className="px-6 py-4 font-bold text-xs uppercase tracking-wider whitespace-nowrap bg-muted/90 backdrop-blur-md">
+                    <th key={rule.original_header} className="px-3 py-2 font-black text-[10px] uppercase tracking-wider whitespace-nowrap bg-muted/90 backdrop-blur-sm">
                       {rule.new_header}
                     </th>
                   ))
                 : dbfRules.map(rule => (
-                    <th key={rule.original_header} className="px-6 py-4 font-bold text-xs uppercase tracking-wider whitespace-nowrap bg-muted/90 backdrop-blur-md">
+                    <th key={rule.original_header} className="px-3 py-2 font-black text-[10px] uppercase tracking-wider whitespace-nowrap bg-muted/90 backdrop-blur-sm">
                       {rule.original_header}
                     </th>
                   ))
               }
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/50">
             {previewData.map((row, i) => (
-              <tr key={i} className="hover:bg-muted/40 transition-colors group">
+              <tr key={i} className="hover:bg-muted/20 transition-colors">
                 {activeTab === 'excel'
                   ? excelRules.map(rule => (
-                      <td key={rule.original_header} className="px-6 py-4 whitespace-nowrap font-medium">
-                        {row[rule.original_header]}
+                      <td key={rule.original_header} className="px-3 py-1.5 whitespace-nowrap font-medium">
+                        {applyTransformation(row, rule, rules)}
                       </td>
                     ))
                   : dbfRules.map(rule => (
-                      <td key={rule.original_header} className="px-6 py-4 whitespace-nowrap text-muted-foreground/60 italic font-mono text-xs">
+                      <td key={rule.original_header} className="px-3 py-1.5 whitespace-nowrap text-muted-foreground/50 italic font-mono text-[10px]">
                         {row[rule.original_header]}
                       </td>
                     ))
                 }
               </tr>
             ))}
-            {previewData.length === 0 && (
-              <tr>
-                <td colSpan={100} className="px-10 py-20 text-center text-muted-foreground italic">
-                  Nessun dato da visualizzare qui.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
       {(data.length > 50) && (
-        <div className="px-6 py-3 border-t text-xs text-center text-muted-foreground bg-muted/10 font-medium">
-          Visualizzando un estratto di 50 righe su {data.length} totali.
+        <div className="px-3 py-1.5 border-t text-[10px] text-center text-muted-foreground bg-muted/5 font-bold uppercase tracking-widest">
+          Anteprima: 50 di {data.length} righe
         </div>
       )}
     </div>

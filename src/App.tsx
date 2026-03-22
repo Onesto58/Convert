@@ -39,15 +39,12 @@ function App() {
       setError(null);
       
       const parsedData = await parseFile(selectedFile);
-      console.log("Dati ottenuti da parser in App.tsx:", parsedData);
       
       if (!parsedData || parsedData.length === 0) {
-        console.warn("Dati vuoti rilevati in App.tsx");
         throw new Error("Il file sembra essere vuoto o non valido.");
       }
       
       const headers = Object.keys(parsedData[0]);
-      
       const existingRules = await loadRules();
       const mappedRules = new Map(existingRules.map(r => [r.original_header, r]));
       
@@ -59,7 +56,8 @@ function App() {
           original_header: header,
           new_header: header,
           is_visible: true,
-          position_index: 99999 // put new columns simply at the end initially
+          position_index: 99999,
+          numeric_transformation: 'none'
         };
       });
       
@@ -81,12 +79,7 @@ function App() {
   const handleGenerateExcel = async () => {
     try {
       setIsExporting(true);
-      
-      try {
-        await saveRules(rules);
-      } catch (saveError) {
-        console.error("Non è stato possibile salvare le regole sul DB", saveError);
-      }
+      await saveRules(rules);
       
       const blob = generateExcel(data, rules, startRow);
       if (!blob) throw new Error("Errore durante la generazione dell'Excel");
@@ -115,40 +108,40 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-primary">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FileSpreadsheet size={24} />
+    <div className="h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
+      <header className="bg-card border-b sticky top-0 z-20 shadow-xs shrink-0">
+        <div className="max-w-[1800px] mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-primary">
+            <div className="p-1.5 bg-primary/10 rounded">
+              <FileSpreadsheet size={18} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">DBF to Excel Pro</h1>
+            <h1 className="text-base font-bold tracking-tight text-foreground">DBF to Excel Pro</h1>
           </div>
           {file && (
             <button
               onClick={reset}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-full transition-colors flex items-center gap-2"
+              className="px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-full transition-all flex items-center gap-1.5 border"
             >
-              <RefreshCw size={16} />
-              Carica nuovo file
+              <RefreshCw size={12} />
+              Nuovo File
             </button>
           )}
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-6 py-8 flex flex-col">
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 py-4 flex flex-col min-h-0">
         {!file && !isLoading && (
-          <div className="max-w-2xl mx-auto w-full mt-24">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-extrabold tracking-tight mb-4">Ottimizza i tuoi flussi di dati</h2>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                Converti i file DBF in fogli Excel puliti e organizzati. Rinomina, riordina e riutilizza in automatico le tue configurazioni preferite.
+          <div className="max-w-xl mx-auto w-full mt-16">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-black tracking-tight mb-2">Convertitore DBF</h2>
+              <p className="text-sm text-muted-foreground">
+                Trasforma i tuoi dBase III in file Excel ordinati e pronti all'uso.
               </p>
             </div>
             {error && (
-              <div className="mb-6 p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
-                <AlertCircle size={20} className="shrink-0" />
-                <p className="font-medium text-sm">{error}</p>
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle size={16} className="shrink-0" />
+                <p className="font-semibold text-xs">{error}</p>
               </div>
             )}
             <div className="animate-in fade-in zoom-in-95 duration-500">
@@ -158,17 +151,16 @@ function App() {
         )}
 
         {isLoading && !file && (
-          <div className="flex flex-col items-center justify-center py-40 text-muted-foreground animate-in fade-in">
-            <RefreshCw size={48} className="animate-spin mb-6 text-primary" />
-            <p className="text-xl font-medium text-foreground mb-2">Lettura del file in corso...</p>
-            <p className="text-sm">Analisi delle strutture e caricamento configurazioni</p>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-in fade-in">
+            <RefreshCw size={32} className="animate-spin mb-4 text-primary" />
+            <p className="text-sm font-bold text-foreground">Caricamento in corso...</p>
           </div>
         )}
 
         {file && !isLoading && (
-          <div className="flex-1 grid grid-cols-1 xl:grid-cols-12 gap-8 lg:min-h-[calc(100vh-160px)] animate-in fade-in duration-500">
-            <div className="xl:col-span-4 h-full flex flex-col bg-card rounded-2xl border shadow-sm p-6">
-              <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0 animate-in fade-in duration-300">
+            <div className="lg:col-span-4 h-full flex flex-col bg-card rounded-xl border shadow-xs p-3 min-h-0">
+              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
                 <RuleConfiguration 
                   rules={rules} 
                   onRulesChange={setRules}
@@ -177,22 +169,19 @@ function App() {
                 />
               </div>
               
-              <div className="mt-8 pt-6 border-t shrink-0">
+              <div className="mt-3 pt-3 border-t shrink-0">
                 <button
                   onClick={handleGenerateExcel}
                   disabled={isExporting}
-                  className="w-full py-4 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 flex items-center justify-center gap-3 shadow-lg hover:shadow-primary/25 transition-all focus:ring-4 focus:ring-primary/20 disabled:opacity-70 disabled:pointer-events-none"
+                  className="w-full py-2.5 px-4 bg-primary text-primary-foreground text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {isExporting ? <RefreshCw size={22} className="animate-spin" /> : <Download size={22} />}
-                  {isExporting ? 'Generazione in corso...' : 'Genera ed esporta Excel'}
+                  {isExporting ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
+                  {isExporting ? 'Generazione...' : 'Esporta Excel'}
                 </button>
-                <p className="text-xs text-center mt-4 text-muted-foreground font-medium">
-                  Le tue regole verranno salvate e riapplicate al prossimo file.
-                </p>
               </div>
             </div>
             
-            <div className="xl:col-span-8 h-full min-h-[600px] xl:min-h-0 relative">
+            <div className="lg:col-span-8 h-full flex flex-col min-h-0">
               <DataPreview data={data} rules={rules} />
             </div>
           </div>
