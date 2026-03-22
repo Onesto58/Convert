@@ -83,7 +83,7 @@ export const DataPreview: React.FC<DataPreviewProps> = React.memo(({ data, rules
                 {activeTab === 'excel'
                   ? excelRules.map(rule => (
                       <td key={rule.original_header} className="px-3 py-1.5 whitespace-nowrap font-medium">
-                        {applyTransformation(row, rule, rules)}
+                        {applyTransformation(row, rule)}
                       </td>
                     ))
                   : dbfRules.map(rule => (

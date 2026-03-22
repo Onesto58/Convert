@@ -1,6 +1,6 @@
 import type { ColumnRule } from '../types';
 
-export const applyTransformation = (row: any, rule: ColumnRule, allRules: ColumnRule[]): any => {
+export const applyTransformation = (row: any, rule: ColumnRule): any => {
   // Conversione sicura a numero
   const toNumber = (val: any) => {
     if (val === null || val === undefined || val === '') return 0;

@@ -18,7 +18,7 @@ export const generateExcel = (
   const transformedData = data.map(row => {
     const newRow: Record<string, any> = {};
     activeRules.forEach(rule => {
-      newRow[rule.new_header] = applyTransformation(row, rule, rules);
+      newRow[rule.new_header] = applyTransformation(row, rule);
     });
     return newRow;
   });
