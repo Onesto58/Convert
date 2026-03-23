@@ -15,9 +15,13 @@ export const loadRules = async (): Promise<ColumnRule[]> => {
 };
 
 export const saveRules = async (rules: ColumnRule[]): Promise<void> => {
-  // clean up IDs if they don't exist yet to let Supabase generate them,
-  // or pass them to update. Upsert config handles it if we match on original_header
-  const rulesToSave = rules.map(({ id, ...rest }) => rest);
+  if (!rules || rules.length === 0) return;
+
+  // Pulizia dei dati prima dell'upsert:
+  // Rimuoviamo id e campi di timestamp forniti dalla query precedente.
+  // Escludendo created_at e updated_at, diciamo a Supabase di usare i valori di default per i nuovi record
+  // e di lasciare invariati (o far scattare i trigger per updated_at) i record esistenti.
+  const rulesToSave = rules.map(({ id, created_at, updated_at, ...rest }: any) => rest);
   
   const { error } = await supabase
     .from('column_rules')
