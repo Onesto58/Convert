@@ -53,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onSelectPath }) => {
               Strumento per la gestione dei ratei e risconti. Analizza le competenze temporali e automatizza i calcoli contabili.
             </p>
             <div className="flex items-center gap-2 text-primary font-bold text-sm">
-              Disponibile a breve <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              Inizia ora <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </div>
             
             <div className="absolute top-4 right-4">

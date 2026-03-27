@@ -46,7 +46,9 @@ export const AccrualPreview: React.FC<AccrualPreviewProps> = ({ data, rules }) =
                   const value = calculateAccrualRow(employee, rule.selected_values);
                   return (
                     <td key={i} className="px-4 py-2.5 text-right font-black text-[13px]">
-                      {value.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {typeof value === 'number' 
+                        ? value.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        : value}
                     </td>
                   );
                 })}

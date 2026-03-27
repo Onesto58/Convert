@@ -82,7 +82,7 @@ export const AccrualConfigurator: React.FC<AccrualConfiguratorProps> = ({ rules,
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                 {TYPES.map(type => (
                   <div key={type} className="space-y-2">
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{type}</p>
@@ -108,6 +108,31 @@ export const AccrualConfigurator: React.FC<AccrualConfiguratorProps> = ({ rules,
                     </div>
                   </div>
                 ))}
+
+                {/* STTFR Components */}
+                <div className="space-y-2 bg-primary/5 p-2 rounded-xl border border-primary/10">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">STTFR</p>
+                    <div className="flex flex-col gap-1.5">
+                        {['dt_lic', 'tfr_da_riportare', 'quota_tfr_fondi_prev'].map(field => {
+                            const val = `sttfr.${field}`;
+                            const isSelected = rule.selected_values.includes(val);
+                            return (
+                                <button
+                                    key={field}
+                                    onClick={() => toggleValue(idx, 'sttfr', field)}
+                                    className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
+                                        isSelected 
+                                            ? 'bg-primary/30 border-primary/40 text-primary shadow-sm' 
+                                            : 'bg-card border-border text-muted-foreground hover:border-primary/20'
+                                    }`}
+                                >
+                                    <span className="text-[9px] truncate max-w-[80px]">{field.replace(/_/g, ' ')}</span>
+                                    {isSelected ? <CheckCircle2 size={12} /> : <Circle size={12} className="opacity-30" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
               </div>
               
               <div className="mt-3 pt-3 border-t border-muted-foreground/10 flex items-center justify-between text-[11px] text-muted-foreground">

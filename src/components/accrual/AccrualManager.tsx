@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { FileUpload } from '../FileUpload';
 import { AccrualConfigurator } from './AccrualConfigurator';
 import { AccrualPreview } from './AccrualPreview';
-import { parseAccrualExcel } from '../../utils/accrualParser';
+import { parseExcelFile, parseRateiData, parseSttfrData } from '../../utils/accrualParser';
 import { loadAccrualRules, saveAccrualRules } from '../../utils/accrualStorage';
 import { generateAccrualExcel } from '../../utils/accrualExcelGenerator';
 import type { AccrualEmployee, AccrualRule } from '../../types';
-import { Download, RefreshCw, AlertCircle, Calculator } from 'lucide-react';
+import { Download, RefreshCw, AlertCircle, FileCheck, FileWarning } from 'lucide-react';
 
 export const AccrualManager: React.FC = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [rateiFile, setRateiFile] = useState<File | null>(null);
+  const [sttfrFile, setSttfrFile] = useState<File | null>(null);
   const [data, setData] = useState<AccrualEmployee[]>([]);
   const [rules, setRules] = useState<AccrualRule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,16 +38,52 @@ export const AccrualManager: React.FC = () => {
     return () => clearTimeout(timer);
   }, [rules]);
 
-  const handleFileSelect = async (selectedFile: File) => {
+  const handleRateiUpload = async (file: File) => {
     try {
       setIsLoading(true);
       setError(null);
-      const parsedData = await parseAccrualExcel(selectedFile);
-      setData(parsedData);
-      setFile(selectedFile);
+      const jsonData = await parseExcelFile(file);
+      const employeesMap = parseRateiData(jsonData);
+      
+      // If STTFR is already loaded, merge it
+      if (sttfrFile && data.length > 0) {
+          data.forEach(emp => {
+              if (emp.sttfr && employeesMap.has(emp.matricola)) {
+                  employeesMap.get(emp.matricola)!.sttfr = emp.sttfr;
+              }
+          });
+      }
+      
+      setData(Array.from(employeesMap.values()));
+      setRateiFile(file);
     } catch (err: any) {
-      setError(err.message || "Errore nel caricamento del file.");
-      setFile(null);
+      setError("Errore nel caricamento del file RATEI.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSttfrUpload = async (file: File) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const jsonData = await parseExcelFile(file);
+      const sttfrMap = parseSttfrData(jsonData);
+      
+      if (data.length === 0) {
+          setError("Carica prima il file RATEI per poter associare i dati STTFR.");
+          return;
+      }
+
+      const newData = data.map(emp => ({
+          ...emp,
+          sttfr: sttfrMap.get(emp.matricola) || emp.sttfr
+      }));
+      
+      setData(newData);
+      setSttfrFile(file);
+    } catch (err: any) {
+      setError("Errore nel caricamento del file STTFR.");
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +97,7 @@ export const AccrualManager: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = file ? `Accrual_${file.name.replace(/\.[^/.]+$/, "")}.xlsx` : "accrual_export.xlsx";
+      a.download = `Accrual_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -73,37 +110,65 @@ export const AccrualManager: React.FC = () => {
   };
 
   const reset = () => {
-    setFile(null);
+    setRateiFile(null);
+    setSttfrFile(null);
     setData([]);
     setError(null);
   };
 
   return (
     <div className="flex-1 flex flex-col py-4 min-h-0">
-      {!file && !isLoading && (
-        <div className="max-w-xl mx-auto w-full mt-16 animate-in fade-in slide-in-from-bottom-4">
-          <div className="text-center mb-12">
-            <div className="mx-auto w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary mb-6">
-              <Calculator size={40} strokeWidth={2.5} />
-            </div>
-            <h2 className="text-3xl font-black tracking-tight mb-2">Modulo Accrual</h2>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Carica il file Excel delle competenze (5 righe per persona) per generare il prospetto sintetico.
-            </p>
+      {(!rateiFile || !sttfrFile) && !isLoading && (
+        <div className="max-w-4xl mx-auto w-full mt-8 animate-in fade-in slide-in-from-bottom-4">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black tracking-tight mb-2 text-primary">Caricamento Dati Accrual</h2>
+            <p className="text-sm text-muted-foreground">Carica entrambi i file per completare l'elaborazione.</p>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* RATEI Upload */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-sm font-bold flex items-center gap-2">
+                  {rateiFile ? <FileCheck className="text-green-500" size={18} /> : <FileWarning className="text-amber-500" size={18} />}
+                  File RATEI
+                </span>
+                {rateiFile && <span className="text-[10px] bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full font-bold uppercase">Caricato</span>}
+              </div>
+              <FileUpload 
+                onFileSelect={handleRateiUpload} 
+                accept=".xlsx,.xls"
+                title="RATEI"
+                description="Matrice 5 righe per persona"
+                id="ratei-upload"
+              />
+            </div>
+
+            {/* STTFR Upload */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-sm font-bold flex items-center gap-2">
+                  {sttfrFile ? <FileCheck className="text-green-500" size={18} /> : <FileWarning className="text-amber-500" size={18} />}
+                  File STTFR
+                </span>
+                {sttfrFile && <span className="text-[10px] bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full font-bold uppercase">Caricato</span>}
+              </div>
+              <FileUpload 
+                onFileSelect={handleSttfrUpload} 
+                accept=".xlsx,.xls"
+                title="STTFR"
+                description="Dati TFR (una riga per persona)"
+                id="sttfr-upload"
+              />
+            </div>
+          </div>
+
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2">
+            <div className="mt-6 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
               <p className="font-semibold text-xs">{error}</p>
             </div>
           )}
-          <FileUpload 
-            onFileSelect={handleFileSelect} 
-            accept=".xlsx,.xls"
-            title="Carica il file delle competenze"
-            description="Trascina qui il file Excel o clicca per selezionarlo"
-            id="accrual-upload"
-          />
         </div>
       )}
 
@@ -114,7 +179,7 @@ export const AccrualManager: React.FC = () => {
         </div>
       )}
 
-      {file && !isLoading && (
+      {rateiFile && sttfrFile && !isLoading && (
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0 animate-in fade-in">
           <div className="lg:col-span-5 h-full flex flex-col bg-card rounded-xl border shadow-xs p-4 min-h-0">
             <AccrualConfigurator rules={rules} onRulesChange={setRules} />

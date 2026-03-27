@@ -21,10 +21,17 @@ export interface AccrualValues {
   inail: number;
 }
 
+export interface AccrualSttfr {
+  dt_lic?: string | number;
+  tfr_da_riportare: number;
+  quota_tfr_fondi_prev: number;
+}
+
 export interface AccrualEmployee {
   matricola: string;
   nome: string;
   matrix: {
     [key: string]: AccrualValues;
   };
+  sttfr?: AccrualSttfr;
 }
