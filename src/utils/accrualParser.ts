@@ -26,7 +26,7 @@ export const parseRateiData = (jsonData: any[]): Map<string, AccrualEmployee> =>
     const matricola = String(row['Matricola'] || '').trim();
     const nome = String(row['Cognome_e_nome'] || '').trim();
     const tipo = String(row['Tipo'] || '').trim().toLowerCase();
-    
+
     if (!matricola) return;
 
     if (!employeesMap.has(matricola)) {
@@ -53,7 +53,7 @@ export const parseSttfrData = (jsonData: any[]): Map<string, AccrualSttfr> => {
   jsonData.forEach((row) => {
     const matricola = String(row['Matricola'] || '').trim();
     if (!matricola) return;
-    
+
     sttfrMap.set(matricola, {
       dt_lic: row['Dt_lic.'],
       tfr_da_riportare: Number(row['TFR_da_riportare'] || 0),
@@ -69,13 +69,13 @@ export const calculateAccrualRow = (employee: AccrualEmployee, selectedValues: s
 
   selectedValues.forEach((path) => {
     const [section, field] = path.toLowerCase().split('.');
-    
+
     if (section === 'sttfr') {
       if (employee.sttfr) {
         const val = (employee.sttfr as any)[field];
         if (field === 'dt_lic') {
-            isDate = true;
-            return; // Dates can't be summed, but let's assume if it's selected alone it shows up
+          isDate = true;
+          return; // Dates can't be summed, but let's assume if it's selected alone it shows up
         }
         sum += Number(val || 0);
       }
