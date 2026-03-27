@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { FileUpload } from './components/FileUpload';
 import { RuleConfiguration } from './components/RuleConfiguration';
 import { DataPreview } from './components/DataPreview';
+import { LandingPage } from './components/LandingPage';
 import type { ColumnRule } from './types';
 import { parseFile } from './utils/fileParser';
 import { loadRules, saveRules } from './utils/ruleStorage';
 import { generateExcel } from './utils/excelGenerator';
-import { Download, RefreshCw, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { Download, RefreshCw, AlertCircle, FileSpreadsheet, LayoutGrid, Calculator } from 'lucide-react';
+
+type AppPath = 'landing' | 'dbf-to-excel' | 'accrual';
 
 function App() {
+  const [currentPath, setCurrentPath] = useState<AppPath>('landing');
   const [file, setFile] = useState<File | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [rules, setRules] = useState<ColumnRule[]>([]);
@@ -107,83 +111,133 @@ function App() {
     setError(null);
   };
 
+  const goToLanding = () => {
+    setCurrentPath('landing');
+    reset();
+  };
+
   return (
     <div className="h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
       <header className="bg-card border-b sticky top-0 z-20 shadow-xs shrink-0">
         <div className="max-w-[1800px] mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
+          <button 
+            onClick={goToLanding}
+            className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity"
+          >
             <div className="p-1.5 bg-primary/10 rounded">
-              <FileSpreadsheet size={18} />
+              {currentPath === 'dbf-to-excel' ? <FileSpreadsheet size={18} /> : 
+               currentPath === 'accrual' ? <Calculator size={18} /> : 
+               <LayoutGrid size={18} />}
             </div>
-            <h1 className="text-base font-bold tracking-tight text-foreground">DBF to Excel Pro</h1>
+            <h1 className="text-base font-bold tracking-tight text-foreground">
+              {currentPath === 'dbf-to-excel' ? 'DBF to Excel Pro' : 
+               currentPath === 'accrual' ? 'Accrual Manager' : 
+               'Convert Suite'}
+            </h1>
+          </button>
+          
+          <div className="flex items-center gap-2">
+            {currentPath !== 'landing' && (
+              <button
+                onClick={goToLanding}
+                className="px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-full transition-all flex items-center gap-1.5 border"
+              >
+                <LayoutGrid size={12} />
+                Menu Principale
+              </button>
+            )}
+            {file && currentPath === 'dbf-to-excel' && (
+              <button
+                onClick={reset}
+                className="px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-full transition-all flex items-center gap-1.5 border"
+              >
+                <RefreshCw size={12} />
+                Nuovo File
+              </button>
+            )}
           </div>
-          {file && (
-            <button
-              onClick={reset}
-              className="px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-full transition-all flex items-center gap-1.5 border"
-            >
-              <RefreshCw size={12} />
-              Nuovo File
-            </button>
-          )}
         </div>
       </header>
 
-      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 py-4 flex flex-col min-h-0">
-        {!file && !isLoading && (
-          <div className="max-w-xl mx-auto w-full mt-16">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-black tracking-tight mb-2">Convertitore DBF</h2>
-              <p className="text-sm text-muted-foreground">
-                Trasforma i tuoi dBase III in file Excel ordinati e pronti all'uso.
-              </p>
-            </div>
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-                <AlertCircle size={16} className="shrink-0" />
-                <p className="font-semibold text-xs">{error}</p>
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 flex flex-col min-h-0 overflow-auto">
+        {currentPath === 'landing' && (
+          <LandingPage onSelectPath={setCurrentPath} />
+        )}
+
+        {currentPath === 'dbf-to-excel' && (
+          <div className="flex-1 flex flex-col py-4 min-h-0">
+            {!file && !isLoading && (
+              <div className="max-w-xl mx-auto w-full mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-black tracking-tight mb-2">Convertitore DBF</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Trasforma i tuoi dBase III in file Excel ordinati e pronti all'uso.
+                  </p>
+                </div>
+                {error && (
+                  <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 flex items-center gap-2">
+                    <AlertCircle size={16} className="shrink-0" />
+                    <p className="font-semibold text-xs">{error}</p>
+                  </div>
+                )}
+                <FileUpload onFileSelect={handleFileSelect} />
               </div>
             )}
-            <div className="animate-in fade-in zoom-in-95 duration-500">
-              <FileUpload onFileSelect={handleFileSelect} />
-            </div>
+
+            {isLoading && !file && (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-in fade-in">
+                <RefreshCw size={32} className="animate-spin mb-4 text-primary" />
+                <p className="text-sm font-bold text-foreground">Caricamento in corso...</p>
+              </div>
+            )}
+
+            {file && !isLoading && (
+              <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0 animate-in fade-in duration-300">
+                <div className="lg:col-span-4 h-full flex flex-col bg-card rounded-xl border shadow-xs p-3 min-h-0">
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    <RuleConfiguration 
+                      rules={rules} 
+                      onRulesChange={setRules}
+                      startRow={startRow}
+                      onStartRowChange={setStartRow}
+                    />
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t shrink-0">
+                    <button
+                      onClick={handleGenerateExcel}
+                      disabled={isExporting}
+                      className="w-full py-2.5 px-4 bg-primary text-primary-foreground text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isExporting ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
+                      {isExporting ? 'Generazione...' : 'Esporta Excel'}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="lg:col-span-8 h-full flex flex-col min-h-0">
+                  <DataPreview data={data} rules={rules} />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {isLoading && !file && (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-in fade-in">
-            <RefreshCw size={32} className="animate-spin mb-4 text-primary" />
-            <p className="text-sm font-bold text-foreground">Caricamento in corso...</p>
-          </div>
-        )}
-
-        {file && !isLoading && (
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 h-full min-h-0 animate-in fade-in duration-300">
-            <div className="lg:col-span-4 h-full flex flex-col bg-card rounded-xl border shadow-xs p-3 min-h-0">
-              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                <RuleConfiguration 
-                  rules={rules} 
-                  onRulesChange={setRules}
-                  startRow={startRow}
-                  onStartRowChange={setStartRow}
-                />
-              </div>
-              
-              <div className="mt-3 pt-3 border-t shrink-0">
-                <button
-                  onClick={handleGenerateExcel}
-                  disabled={isExporting}
-                  className="w-full py-2.5 px-4 bg-primary text-primary-foreground text-sm font-bold rounded-lg hover:shadow-lg hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isExporting ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
-                  {isExporting ? 'Generazione...' : 'Esporta Excel'}
-                </button>
-              </div>
+        {currentPath === 'accrual' && (
+          <div className="flex-1 flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-6 bg-primary/5 rounded-full mb-6">
+              <Calculator size={64} className="text-primary opacity-50" />
             </div>
-            
-            <div className="lg:col-span-8 h-full flex flex-col min-h-0">
-              <DataPreview data={data} rules={rules} />
-            </div>
+            <h2 className="text-3xl font-black mb-2">Modulo Accrual</h2>
+            <p className="text-muted-foreground max-w-md">
+              Questa sezione è attualmente in fase di sviluppo. Presto potrai gestire ratei e risconti direttamente da qui.
+            </p>
+            <button 
+              onClick={goToLanding}
+              className="mt-8 px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold hover:shadow-lg transition-all"
+            >
+              Torna al Menu
+            </button>
           </div>
         )}
       </main>
