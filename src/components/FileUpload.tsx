@@ -3,9 +3,19 @@ import { UploadCloud } from 'lucide-react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
+  accept?: string;
+  title?: string;
+  description?: string;
+  id?: string;
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
+export const FileUpload: React.FC<FileUploadProps> = ({ 
+  onFileSelect, 
+  accept = ".dbf", 
+  title = "Carica il tuo file DBF", 
+  description = "Trascina qui il file oppure clicca per selezionarlo dal computer",
+  id = "file-upload"
+}) => {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -18,27 +28,32 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
     setIsDragging(false);
   }, []);
 
+  const isValidFile = (fileName: string) => {
+    const allowedExtensions = accept.split(',').map(ext => ext.trim().toLowerCase());
+    return allowedExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      if (file.name.toLowerCase().endsWith('.dbf')) {
+      if (isValidFile(file.name)) {
         onFileSelect(file);
       } else {
-        alert("Per favore, carica un file in formato .dbf");
+        alert(`Per favore, carica un file in formato ${accept}`);
       }
     }
-  }, [onFileSelect]);
+  }, [onFileSelect, accept]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      if (file.name.toLowerCase().endsWith('.dbf')) {
+      if (isValidFile(file.name)) {
         onFileSelect(file);
       } else {
-        alert("Per favore, carica un file in formato .dbf");
+        alert(`Per favore, carica un file in formato ${accept}`);
       }
     }
   };
@@ -50,12 +65,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={() => document.getElementById('file-upload')?.click()}
+      onClick={() => document.getElementById(id)?.click()}
     >
       <input 
-        id="file-upload" 
+        id={id} 
         type="file" 
-        accept=".dbf" 
+        accept={accept} 
         className="hidden" 
         onChange={handleInputChange} 
       />
@@ -64,9 +79,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
           <UploadCloud size={48} />
         </div>
         <div>
-          <h3 className="text-xl font-semibold mb-2">Carica il tuo file DBF</h3>
+          <h3 className="text-xl font-semibold mb-2">{title}</h3>
           <p className="text-muted-foreground">
-            Trascina qui il file oppure clicca per selezionarlo dal computer
+            {description}
           </p>
         </div>
       </div>

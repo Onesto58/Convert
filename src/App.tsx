@@ -3,6 +3,7 @@ import { FileUpload } from './components/FileUpload';
 import { RuleConfiguration } from './components/RuleConfiguration';
 import { DataPreview } from './components/DataPreview';
 import { LandingPage } from './components/LandingPage';
+import { AccrualManager } from './components/accrual/AccrualManager';
 import type { ColumnRule } from './types';
 import { parseFile } from './utils/fileParser';
 import { loadRules, saveRules } from './utils/ruleStorage';
@@ -224,21 +225,7 @@ function App() {
         )}
 
         {currentPath === 'accrual' && (
-          <div className="flex-1 flex flex-col items-center justify-center py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-6 bg-primary/5 rounded-full mb-6">
-              <Calculator size={64} className="text-primary opacity-50" />
-            </div>
-            <h2 className="text-3xl font-black mb-2">Modulo Accrual</h2>
-            <p className="text-muted-foreground max-w-md">
-              Questa sezione è attualmente in fase di sviluppo. Presto potrai gestire ratei e risconti direttamente da qui.
-            </p>
-            <button 
-              onClick={goToLanding}
-              className="mt-8 px-6 py-2 bg-primary text-primary-foreground rounded-full font-bold hover:shadow-lg transition-all"
-            >
-              Torna al Menu
-            </button>
-          </div>
+          <AccrualManager />
         )}
       </main>
     </div>
